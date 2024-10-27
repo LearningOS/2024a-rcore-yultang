@@ -339,13 +339,19 @@ impl MemorySet {
     }
 
     fn copy_out_raw(&self, data: &[u8], addr: usize) -> Result<(), ()> {
+        // addr是实际的地址, 但地址可能不在刚好一页的开始或者结束的位置
+        // 但是每一个地址又需要其所在页的页号
+        // 所以需要通过current_vpn这样的操作来获得页号
         let len = data.len();
         self.user_check(addr, addr + len)?;
+        // addr: 实际数据开始的地址(虚拟地址)
+        // addr + len: 实际数据结束的地址(虚拟地址)
         let mut current_vpn = VirtAddr::from(addr).floor();
-        let addr_end = addr+len;
-        while current_vpn.0*PAGE_SIZE<addr_end {
-            // vpn...
+        let addr_end = addr + len;
+        while current_vpn.0 * PAGE_SIZE < addr_end {
             let addr_vp = (current_vpn.0)*PAGE_SIZE;
+            // addr_l与addr_r一定是在同一页中
+            // 因为[addr_l-addr_vp..addr_r-addr_vp]是左闭右开区间
             let addr_l = ((current_vpn.0)*PAGE_SIZE).max(addr);
             let addr_r = ((current_vpn.0+1)*PAGE_SIZE).min(addr_end);
             let dst = &mut self.translate(current_vpn).unwrap().ppn().get_bytes_array()[addr_l-addr_vp..addr_r-addr_vp];
@@ -358,7 +364,9 @@ impl MemorySet {
     /// copy data from kernel to user
     pub fn copy_out<T>(&self, data: &T, addr: *mut T) -> Result<(), ()> {
         let len = core::mem::size_of::<T>();
-        let data = unsafe { core::slice::from_raw_parts(data as *const T as *const u8, len) };
+        let data = unsafe {
+            core::slice::from_raw_parts(data as *const T as *const u8, len)
+        };
         self.copy_out_raw(data, addr as *mut u8 as usize)
     }
 }

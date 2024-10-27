@@ -2,7 +2,9 @@
 use crate::{
     config::MAX_SYSCALL_NUM,
     task::{
-        change_program_brk, copy_out, exit_current_and_run_next, get_task_run_time, get_task_syscall_counter, mmap, munmap, suspend_current_and_run_next, TaskStatus
+        change_program_brk, exit_current_and_run_next, suspend_current_and_run_next, 
+        copy_out, get_task_run_time, get_task_syscall_counter, mmap, munmap, 
+        TaskStatus
     }, timer::get_time_us,
 };
 
